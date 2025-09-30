@@ -1,11 +1,11 @@
-# Telescope Request ID
+# Telescope request tracker
 
 Automatically attach a Telescope-compatible request identifier to every JSON response and propagate it via headers.
 
 ## Installation
 
 ```bash
-composer require bekand/telescope-request-id
+composer require bekand/telescope-request-track
 ```
 
 The package registers itself automatically thanks to Laravel's package auto-discovery.
@@ -15,10 +15,10 @@ The package registers itself automatically thanks to Laravel's package auto-disc
 Publish the configuration to customise header names, JSON keys, or disable the middleware globally.
 
 ```bash
-php artisan vendor:publish --provider="BekAnd\\TelescopeRequestTrack\\TelescopeRequestTrackServiceProvider" --tag=config
+php artisan vendor:publish --tag=telescope-track-config
 ```
 
-Available options (see `config/telescope-request-id.php`):
+Available options (see `config/telescope-track.php`):
 
 - `enabled` (bool): Toggle the middleware globally (default `true`).
 - `show_in_json` (bool): Control whether the request ID is appended to JSON payloads (default `true`).

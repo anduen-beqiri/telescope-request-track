@@ -2,11 +2,24 @@ name: Release
 
 on:
   push:
-    tags:
-      - 'v*'
-
+    branches:
+      - 'v*.*.*'
 jobs:
+  release:
+    name: Create GitHub Release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Create release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GH_RELEASE_TOKEN }}
+        with:
+          tag_name: ${{ github.ref_name }}
+          release_name: ${{ github.ref_name }}
+          body: |
+            Automated release for ${{ github.ref_name }}.
   packagist:
+    needs: release
     name: Notify Packagist
     runs-on: ubuntu-latest
     steps:
@@ -16,25 +29,32 @@ jobs:
           PACKAGIST_TOKEN: ${{ secrets.PACKAGIST_TOKEN }}
           REPOSITORY_URL: ${{ github.server_url }}/${{ github.repository }}
         run: |
-          if [ -z "$PACKAGIST_USERNAME" ] || [ -z "$PACKAGIST_TOKEN" ]; then
-            echo "Packagist credentials not configured. Skipping notification." 
-            exit 0
-          fi
-          curl -s -X POST \
-            -H "Content-Type: application/json" \
-            --data "{\"repository\":{\"url\":\"$REPOSITORY_URL\"}}" \
-            "https://packagist.org/api/update-package?username=$PACKAGIST_USERNAME&apiToken=$PACKAGIST_TOKEN"
+          set -euo pipefail
 
-  release:
-    name: Create GitHub Release
-    runs-on: ubuntu-latest
-    steps:
-      - name: Create release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: ${{ github.ref_name }}
-          release_name: ${{ github.ref_name }}
-          body: |
-            Automated release for ${{ github.ref_name }}.
+          if [ -z "$PACKAGIST_USERNAME" ] || [ -z "$PACKAGIST_TOKEN" ]; then
+            echo "Packagist credentials not configured."
+            exit 1
+          fi
+
+          RESPONSE_FILE=$(mktemp)
+          trap 'rm -f "$RESPONSE_FILE"' EXIT
+
+          ENDPOINT="https://packagist.org/api/update-package"
+          PAYLOAD="{\"repository\":{\"url\":\"$REPOSITORY_URL\"}}"
+
+          HTTP_CODE=$(curl -s -o "$RESPONSE_FILE" -w "%{http_code}" \
+            -X POST \
+            -H "Content-Type: application/json" \
+            -H "Authorization: Bearer $PACKAGIST_USERNAME:$PACKAGIST_TOKEN" \
+            --data "$PAYLOAD" \
+            "$ENDPOINT")
+
+          if [ "$HTTP_CODE" -ne 200 ]; then
+            echo "Packagist notification failed with HTTP code $HTTP_CODE"
+            cat "$RESPONSE_FILE" 2>/dev/null || true
+            exit 1
+          fi
+
+          echo "Packagist successfully notified."
+          cat "$RESPONSE_FILE" 2>/dev/null || true
+

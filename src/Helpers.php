@@ -24,7 +24,7 @@ class Helpers
 
     public static function config(string $key, mixed $default = null): mixed
     {
-        return config("telescope-request-id.$key", $default);
+        return config("telescope-track.$key", $default);
     }
 
     public static function isEnabled(): bool

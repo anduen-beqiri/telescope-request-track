@@ -19,8 +19,8 @@ class TelescopeRequestTrackServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->mergeConfigFrom(
-            __DIR__ . '/../config/telescope-request-id.php',
-            'telescope-request-id'
+            __DIR__ . '/../config/telescope-track.php',
+            'telescope-track'
         );
     }
 
@@ -37,11 +37,20 @@ class TelescopeRequestTrackServiceProvider extends ServiceProvider
 
     protected function publishConfig(): void
     {
-        if (function_exists('config_path')) {
-            $this->publishes([
-                __DIR__ . '/../config/telescope-request-id.php' => config_path('telescope-request-id.php'),
-            ], 'config');
+        if (! $this->app->runningInConsole()) {
+            return;
         }
+
+        $destination = function_exists('config_path')
+            ? config_path('telescope-track.php')
+            : $this->app->configPath('telescope-track.php');
+
+        $publishable = [
+            __DIR__ . '/../config/telescope-track.php' => $destination,
+        ];
+
+        $this->publishes($publishable, 'config');
+        $this->publishes($publishable, 'telescope-track-config');
     }
 
     protected function registerMiddleware(Router $router): void
