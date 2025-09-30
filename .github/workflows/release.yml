@@ -30,10 +30,32 @@ jobs:
           REPOSITORY_URL: ${{ github.server_url }}/${{ github.repository }}
         run: |
           if [ -z "$PACKAGIST_USERNAME" ] || [ -z "$PACKAGIST_TOKEN" ]; then
-            echo "Packagist credentials not configured. Skipping notification." 
+            echo "Packagist credentials not configured. Skipping notification."
             exit 0
           fi
-          curl -s -X POST \
+
+          ENDPOINT="https://packagist.org/api/update-package"
+          PAYLOAD="{\"repository\":{\"url\":\"$REPOSITORY_URL\"}}"
+
+          HTTP_CODE=$(curl -s -o packagist-response.json -w "%{http_code}" \
+            -X POST \
             -H "Content-Type: application/json" \
-            --data "{\"repository\":{\"url\":\"$REPOSITORY_URL\"}}" \
-            "https://packagist.org/api/update-package?username=$PACKAGIST_USERNAME&apiToken=$PACKAGIST_TOKEN"
+            --user "$PACKAGIST_USERNAME:$PACKAGIST_TOKEN" \
+            --data "$PAYLOAD" \
+            "$ENDPOINT") || CURL_EXIT=$?
+
+          if [ -n "${CURL_EXIT:-}" ]; then
+            echo "Packagist notification request failed with exit code $CURL_EXIT"
+            cat packagist-response.json 2>/dev/null || true
+            exit 0
+          fi
+
+          if [ "$HTTP_CODE" -ne 200 ]; then
+            echo "Packagist notification failed with HTTP code $HTTP_CODE"
+            cat packagist-response.json 2>/dev/null || true
+            exit 0
+          fi
+
+          echo "Packagist successfully notified."
+          cat packagist-response.json 2>/dev/null || true
+
