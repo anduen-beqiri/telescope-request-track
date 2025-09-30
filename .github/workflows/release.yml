@@ -3,7 +3,7 @@ name: Release
 on:
   push:
     branches:
-      - 'v.*.*'
+      - 'v*.*.*'
 jobs:
   release:
     name: Create GitHub Release
