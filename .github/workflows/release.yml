@@ -45,7 +45,7 @@ jobs:
           HTTP_CODE=$(curl -s -o "$RESPONSE_FILE" -w "%{http_code}" \
             -X POST \
             -H "Content-Type: application/json" \
-            --user "$PACKAGIST_USERNAME:$PACKAGIST_TOKEN" \
+            -H "Authorization: Bearer $PACKAGIST_USERNAME:$PACKAGIST_TOKEN" \
             --data "$PAYLOAD" \
             "$ENDPOINT")
 
